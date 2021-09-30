@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  gsr_go:
+    container_name: gsr_go
+    entrypoint: ./.docker/go/entrypoint.sh
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/go/src
+    depends_on:
+      - gsr_mock_api
+      - gsr_rabbit
+      - gsr_solr
+    networks:
+      - grs-net
+
+  gsr_solr:
+    container_name: gsr_solr
+    build: .docker/solr/
+    ports:
+      - "8983:8983"
+    volumes:
+      - ./.docker/solr/schema.xml:/var/solr/shard100/conf/schema.xml
+      - ./.docker/solr/custom.sh:/opt/docker-solr/scripts/custom.sh
+    command:
+      - custom.sh
+    networks:
+      - grs-net
+
+  gsr_rabbit:
+    container_name: gsr_rabbit
+    image: "rabbitmq:3.8-management"
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=fYOaGmG67Py+011XTAM3iw==
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+      - RABBITMQ_DEFAULT_VHOST=/
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - grs-net
+
+  gsr_mock_api:
+    container_name: gsr_mock_api
+    build: ./.docker/mock_server_api
+    ports:
+      - "3001:3000"
+    restart: always
+    volumes:
+      - ./.docker/mock_server_api:/api
+    depends_on:
+      - gsr_rabbit
+    networks:
+      - grs-net
+
+networks:
+  grs-net:
+    driver: bridge

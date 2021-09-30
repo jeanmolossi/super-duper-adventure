@@ -1,0 +1,12 @@
+{
+  "name": "mock_server_api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "amqplib": "^0.8.0",
+    "express": "^4.17.1",
+    "faker": "^5.5.3",
+    "nodemon": "^2.0.13"
+  }
+}
