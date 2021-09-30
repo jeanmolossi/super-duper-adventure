@@ -8,6 +8,29 @@ O objetivo deste projeto é usar a seguinte stack:
 
 e JS
 
+## Primeiros passos
+
+Certifique-se de ter as ferramentas instaladas:
+- [Docker]()
+- [Docker-compose]()
+
+Em seguida, rode o comando:
+
+`cp .env.example .env`
+
+O comando acima é responsável por adicionar um arquivo de variáveis de ambiente legível pelo [docker-compose.yml](./docker-compose.yml)
+
+O próximo passo é executar a aplicação. Para isso, na raiz do projeto, execute:
+
+`docker-compose up -d`
+
+Então, após, as seguintes urls estarão disponíveis para você visualizar os acontecimentos:
+
+- http://localhost:3000 - Mock da API em JS
+  - [/cursos](http://localhost:3000/cursos)
+- [http://localhost:15672](http://localhost:15672) - RabbitMQ
+- [http://localhost:8983](http://localhost:8983) - Apache Solr
+
 ## Fluxo de trabalho de aplicação
 
 A ideia é:
