@@ -1,6 +1,7 @@
 const amqplib = require('amqplib');
 const express = require('express');
 const faker = require('faker');
+const _ = require('lodash');
 
 const port = process.env.PORT || 3000;
 
@@ -19,11 +20,34 @@ function createCurso(id) {
     return {
         id,
         titulo,
-        aulas: faker.datatype.number(10,40),
+        aulas: faker.datatype.number(10, 40),
         alunos: `http://localhost:${port}/curso/${id}/alunos`,
         link: `${faker.internet.url()}/${id}/${titulo}`,
         _self: `http://localhost:${port}/curso/${id}/ver`,
     }
+}
+
+let openRabbit;
+const channel = rabbitConnect().then(conn => conn.createChannel())
+
+function rabbitConnect() {
+    if (!openRabbit) {
+        openRabbit = amqplib.connect('amqp://rabbitmq:rabbitmq@gsr_rabbit?channelMax=65535')
+    }
+
+    return openRabbit
+}
+
+async function publishMessage(id) {
+    const queueName = 'queueCourseId';
+
+    return channel
+        .then(function (channel) {
+            return channel.assertQueue(queueName).then(function () {
+                return channel.sendToQueue(queueName, Buffer.from(id), {routingKey: 'course'})
+            })
+                .catch(console.warn)
+        })
 }
 
 const app = express();
@@ -51,19 +75,18 @@ app.get('/cursos', (req, res) => {
 })
 
 app.get('/curso/:id/ver', (req, res) => {
-    const { id } = req.params;
+    const {id} = req.params;
+    const h = req.headers;
 
-    const openRabbit = amqplib.connect('amqp://rabbitmq:rabbitmq@gsr_rabbit')
-    const queueName = 'queueCourseId';
+    if (!h['origin-app']) {
+        publishMessage(id)
+    }
 
-    openRabbit.then(function (conn) {
-        return conn.createChannel()
-    })
-        .then(function (channel) {
-            return channel.assertQueue(queueName).then(function () {
-                return channel.sendToQueue(queueName, Buffer.from(id), { routingKey: 'course' })
-            })
-        })
+    const failChance = Math.random() * 100
+
+    if (failChance <= 1) {
+        return res.status(504).json()
+    }
 
     return res.json(createCurso(id))
 })
@@ -78,7 +101,7 @@ app.get('/curso/:id/alunos', (req, res) => {
         })
     }
 
-    const totalUsers = Math.round(Math.random() * 3000) + 1;
+    const totalUsers = Math.round(Math.random() * 500) + 1;
     const users = [];
 
     for (let i = 0; i < totalUsers; i++) {
@@ -93,5 +116,34 @@ app.get('/curso/:id/alunos', (req, res) => {
 
     return res.json(data);
 });
+
+app.get('/fill-queue', async (req, res) => {
+    const {query} = req
+
+    let records = 1800
+    if (query.records) {
+        records = query.records < 65535 ? query.records : 65534
+    }
+
+    const idsToFill = []
+
+    for (let i = 0; i < records; i++) {
+        const id = faker.datatype.number(i + 100000, records + 100001).toString()
+        idsToFill.push(id)
+    }
+
+    const promises = idsToFill.map(async id => {
+        console.log("Generating records...", id)
+        return publishMessage(id)
+    })
+
+    await Promise.all(_.chunk(promises, 250))
+
+    console.log(`Generated ${promises.length} records`)
+
+    return res.json({
+        message: `Queue filled with ${records}`
+    })
+})
 
 app.listen(port, () => console.log(`Running on port ${port}`))
