@@ -15,6 +15,6 @@ func main() {
 
 	rabbitMQ.Consume(messageChannel)
 
-	courseProcessor := services.NewCourseProcessor(messageChannel, rabbitMQ)
-	courseProcessor.Start(channel)
+	processor := services.NewProcessorManager(messageChannel, rabbitMQ, channel)
+	processor.Run()
 }
