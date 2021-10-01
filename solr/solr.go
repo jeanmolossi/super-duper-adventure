@@ -2,6 +2,7 @@ package solr
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 )
 
@@ -38,4 +39,14 @@ func Init(host string, port int, core string) (*Connection, error) {
 
 	mountedUrl := fmt.Sprintf("http://%s:%d/solr/%s", host, port, core)
 	return &Connection{URL: mountedUrl}, nil
+}
+
+func NewSolr() *Connection {
+	s, err := Init("gsr_solr", 8983, "shard100")
+	if err != nil {
+		log.Fatalf("Erro ao conectar com Solr")
+		return nil
+	}
+
+	return s
 }
