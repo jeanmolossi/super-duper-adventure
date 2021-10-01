@@ -2,6 +2,8 @@ const amqplib = require('amqplib');
 const express = require('express');
 const faker = require('faker');
 
+const port = process.env.PORT || 3000;
+
 function createUser(curso) {
     return {
         id: faker.datatype.uuid(),
@@ -18,16 +20,14 @@ function createCurso(id) {
         id,
         titulo,
         aulas: faker.datatype.number(10,40),
-        alunos: `http://localhost:3001/curso/${id}/alunos`,
+        alunos: `http://localhost:${port}/curso/${id}/alunos`,
         link: `${faker.internet.url()}/${id}/${titulo}`,
-        _self: `http://localhost:3001/curso/${id}/ver`,
+        _self: `http://localhost:${port}/curso/${id}/ver`,
     }
 }
 
 const app = express();
 app.use(express.json());
-
-const port = 3000;
 
 app.get('/', (req, res) => {
     return res.json({healthy: true})
