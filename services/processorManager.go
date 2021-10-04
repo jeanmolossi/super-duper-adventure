@@ -1,46 +1,73 @@
 package services
 
 import (
-	"github.com/jeanmolossi/super-duper-adventure/domain"
+	"fmt"
 	"github.com/jeanmolossi/super-duper-adventure/queue"
+	"github.com/joho/godotenv"
 	"github.com/streadway/amqp"
+	"log"
+	"os"
+	"strconv"
 )
 
 type ProcessorManager struct {
-	MessageChannel chan amqp.Delivery
-	RabbitMQ       *queue.RabbitMQ
-	Channel        *amqp.Channel
+	MessageChannel  chan amqp.Delivery
+	ReturnChannel   chan ProcessedCourseResult
+	totalConsumers  int
+	channelPrefetch int
 }
 
-type ProcessedCourseResult struct {
-	Course  domain.Course
-	Message amqp.Delivery
-}
-
-func NewProcessorManager(messageChannel chan amqp.Delivery, rabbit *queue.RabbitMQ, channel *amqp.Channel) *ProcessorManager {
-	return &ProcessorManager{
-		MessageChannel: messageChannel,
-		RabbitMQ:       rabbit,
-		Channel:        channel,
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
 	}
 }
 
-func (p *ProcessorManager) Run() {
-	studentsChannel := make(chan ProcessedCourseResult)
-	endChannel := make(chan string)
+func NewProcessorManager() *ProcessorManager {
+	return &ProcessorManager{}
+}
 
-	courseProcessor := NewCourseProcessor(p.MessageChannel, p.RabbitMQ, studentsChannel)
-	courseProcessor.Start(p.Channel)
+func (pm *ProcessorManager) Start() {
+	totalConsumers, _ := strconv.Atoi(os.Getenv("TOTAL_OF_CONSUMERS"))
+	channelPrefetch, _ := strconv.Atoi(os.Getenv("PREFETCH_BY_CONSUMER"))
 
-	studentProcessor := NewStudentProcessor(studentsChannel)
+	pm.MessageChannel = make(chan amqp.Delivery)
+	pm.ReturnChannel = make(chan ProcessedCourseResult)
+	pm.totalConsumers = totalConsumers
+	pm.channelPrefetch = channelPrefetch
 
-	for parallelCourses := 0; parallelCourses < 20; parallelCourses++ {
-		go studentProcessor.Start(endChannel)
-	}
+	pm.HeapUpConsumers()
 
-	for result := range endChannel {
-		if result == "all-done" {
-			close(endChannel)
+	for result := range pm.ReturnChannel {
+		if result.Error != nil {
+			log.Printf("%s concluido com erro: %s", result.Course.ID, result.Error.Error())
+			continue
 		}
+	}
+}
+
+func (pm *ProcessorManager) HeapUpConsumers() {
+	for channelConsumers := 0; channelConsumers < pm.totalConsumers; channelConsumers++ {
+		rabbitMQ := queue.NewRabbitMQ()
+		rabbitMQ.ConsumerName = fmt.Sprintf("%s-%d", os.Getenv("RABBITMQ_CONSUMER_NAME"), channelConsumers+1)
+
+		channel := rabbitMQ.Connect()
+		err := channel.Qos(pm.channelPrefetch, 0, false)
+		if err != nil {
+			log.Fatalf("Falha ao definir Qos")
+		}
+
+		rabbitMQ.Consume(pm.MessageChannel)
+		pm.RunProcessors()
+	}
+}
+
+func (pm *ProcessorManager) RunProcessors() {
+	for processors := 0; processors < pm.channelPrefetch; processors++ {
+		go func() {
+			courseProcessor := NewCourseProcessor(pm.MessageChannel, pm.ReturnChannel)
+			courseProcessor.Start()
+		}()
 	}
 }
