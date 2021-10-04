@@ -1,20 +1,19 @@
 package main
 
 import (
-	"github.com/jeanmolossi/super-duper-adventure/queue"
 	"github.com/jeanmolossi/super-duper-adventure/services"
-	"github.com/streadway/amqp"
+	"github.com/joho/godotenv"
+	"log"
 )
 
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+}
+
 func main() {
-	messageChannel := make(chan amqp.Delivery)
-
-	rabbitMQ := queue.NewRabbitMQ()
-	channel := rabbitMQ.Connect()
-	defer channel.Close()
-
-	rabbitMQ.Consume(messageChannel)
-
-	processor := services.NewProcessorManager(messageChannel, rabbitMQ, channel)
-	processor.Run()
+	processor := services.NewProcessorManager()
+	processor.Start()
 }
