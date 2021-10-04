@@ -11,9 +11,9 @@ e JS
 
 ## Tabela de conteúdo
 
-- [Primeiros passos](##Primeiros-passos)
-- [Fluxo de trabalho da aplicação](##Fluxo-de-trabalho-da-aplicação)
-- [Utilidades](##Utilidades)
+- [Primeiros passos](#primeiros-passos)
+- [Fluxo de trabalho da aplicação](#fluxo-de-trabalho-da-aplicação)
+- [Utilidades](#utilidades)
 
 ## Primeiros passos
 
@@ -104,8 +104,8 @@ GET course_123
 
 ### Apache Solr
 
-Acesse a [Dashboard do Solr](http://localhost:8983) e selecione o Shard/Core retornado pelo [Redis](###redis). Na barra
-à esquerda selecione "Query" e no campo de query você pode usar a query: `curso:123`. Com isso você terá todos os
+Acesse a [Dashboard do Solr](http://localhost:8983) e selecione o Shard/Core retornado pelo [Redis](#redis). Na barra à
+esquerda selecione "Query" e no campo de query você pode usar a query: `curso:123`. Com isso você terá todos os
 registros daquele curso dentro do Apache Solr
 
 ### RabbitMQ
