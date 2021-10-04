@@ -45,6 +45,9 @@ func (r *RabbitMQ) Connect() *amqp.Channel {
 	r.Channel, err = conn.Channel()
 	failOnError(err, "Failed to open a channel")
 
+	err = r.Channel.Qos(12, 0, true)
+	failOnError(err, "Failed to prefetch a channel")
+
 	return r.Channel
 }
 
@@ -59,7 +62,7 @@ func (r *RabbitMQ) Consume(messageChannel chan amqp.Delivery) {
 	)
 	failOnError(err, "Failed to declare a queue")
 
-	incommingMessage, err := r.Channel.Consume(
+	incomingMessage, err := r.Channel.Consume(
 		q.Name,
 		r.ConsumerName,
 		r.AutoAck,
@@ -71,8 +74,7 @@ func (r *RabbitMQ) Consume(messageChannel chan amqp.Delivery) {
 	failOnError(err, "Failed to register a consumer")
 
 	go func() {
-		for message := range incommingMessage {
-			log.Println("Incomming new message")
+		for message := range incomingMessage {
 			messageChannel <- message
 		}
 		log.Println("RabbitMQ channel closed")
