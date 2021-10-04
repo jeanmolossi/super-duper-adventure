@@ -1,87 +1,66 @@
 package services
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/jeanmolossi/super-duper-adventure/domain"
+	"github.com/jeanmolossi/super-duper-adventure/redis"
 	"github.com/jeanmolossi/super-duper-adventure/solr"
 	"log"
+	"regexp"
 )
 
-type GetStudentsResponse struct {
-	Curso  int       `json:"curso"`
-	Total  int       `json:"total"`
-	Alunos []Student `json:"users"`
-}
-
-type Student struct {
-	ID    string `json:"id"`
-	Nome  string `json:"nome"`
-	Plano int    `json:"plano"`
-	Email string `json:"email"`
-	Curso string `json:"curso"`
-}
-
 type StudentProcessor struct {
-	CourseResultChannel chan ProcessedCourseResult
-	Students            []Student
-	SolrConnection      *solr.Connection
+	Students        []domain.Student
+	SolrConnection  *solr.Connection
+	RedisConnection *redis.Redis
 }
 
-func NewStudentProcessor(courseResultChannel chan ProcessedCourseResult) *StudentProcessor {
+func NewStudentProcessor() *StudentProcessor {
 	return &StudentProcessor{
-		CourseResultChannel: courseResultChannel,
-		SolrConnection:      solr.NewSolr(),
+		SolrConnection:  solr.NewSolr(),
+		RedisConnection: redis.NewRedisConnection(),
 	}
 }
 
-func (sp *StudentProcessor) Start(endsChannel chan string) {
-	for courseResult := range sp.CourseResultChannel {
-		students, err := sp.GetStudents(courseResult.Course)
-		if err != nil {
-			log.Fatalf("Falhou ao buscar estudantes do Curso %s", courseResult.Course.ID)
-			return
-		}
-		_, err = sp.SolrConnection.Update(map[string]interface{}{
-			"add": students,
-		}, true)
-		if err != nil {
-			courseResult.Message.Reject(false)
-			log.Fatalf("Erro ao adicionar ao solr")
-			return
-		}
+func (sp *StudentProcessor) Start() error {
+	course := sp.Students[0].Curso
+	redisClient := sp.RedisConnection
+	defer redisClient.Client.Close()
 
-		courseResult.Message.Ack(false)
-
-		log.Printf("Curso %s processado. (Total %d alunos)", courseResult.Course.ID, len(students))
-
-		endsChannel <- courseResult.Course.ID
+	hasCacheCourse, err := redisClient.Get(course)
+	if err != nil && err.Error() != "redis: nil" {
+		return err
 	}
-	endsChannel <- "all-done"
+
+	if hasCacheCourse != "" {
+		e := fmt.Sprintf("Curso já existe no redis")
+		return errors.New(e)
+	}
+
+	_, err = sp.SolrConnection.Update(map[string]interface{}{
+		"add": sp.Students,
+	}, true)
+
+	if err != nil {
+		return err
+	}
+
+	solrShard := replaceHost(sp.SolrConnection.URL)
+
+	_, err = sp.RedisConnection.Set(course, solrShard)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Curso %s armazenado no shard: %s", course, solrShard)
+
+	return nil
 }
 
-func (sp *StudentProcessor) GetStudents(course domain.Course) ([]Student, error) {
-	request := domain.NewRequest()
-	request.Url = fmt.Sprintf(course.Alunos)
+func replaceHost(host string) string {
+	r := regexp.MustCompile("gsr_solr")
+	replacedHost := r.ReplaceAllString(host, "localhost")
 
-	req, err := request.Request()
-	if err != nil {
-		log.Fatalf("Falha ao executar busca: %s", err.Error())
-		return nil, err
-	}
-
-	response, err := request.GetResponse(req)
-	if err != nil {
-		log.Fatalf("Falha ao obter resposta: %s", err.Error())
-		return nil, err
-	}
-
-	var result GetStudentsResponse
-	err = json.Unmarshal(response.Body, &result)
-	if err != nil {
-		log.Fatalf("Erro ao decodificar entidade: %s", err.Error())
-		return nil, err
-	}
-
-	return result.Alunos, nil
+	return replacedHost
 }
