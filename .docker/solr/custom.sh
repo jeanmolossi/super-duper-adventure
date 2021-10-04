@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-export SOLR_SHARD=shard100
+export SOLR_SHARDS=10
 
 echo "Executing $0" "$SOLR_SHARD"
 
@@ -14,6 +14,9 @@ fi
 
 . /opt/docker-solr/scripts/run-initdb
 
-/opt/docker-solr/scripts/precreate-core "$SOLR_SHARD"
+for shard in 100 101 102 103 104 105
+do
+  /opt/docker-solr/scripts/precreate-core "shard$shard"
+done
 
 exec solr-fg
