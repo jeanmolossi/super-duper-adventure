@@ -24,13 +24,17 @@ Certifique-se de ter as ferramentas instaladas:
 
 Em seguida, rode o comando:
 
-`cp .env.example .env`
+```shell
+cp .env.example .env
+```
 
 O comando acima é responsável por adicionar um arquivo de variáveis de ambiente.
 
 O próximo passo é executar a aplicação. Para isso, na raiz do projeto, execute:
 
-`docker-compose up -d`
+```shell
+docker-compose up -d
+```
 
 Por fim, para processar a fila execute:
 
