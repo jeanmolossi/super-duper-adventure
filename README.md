@@ -73,8 +73,8 @@ Este projeto é um projeto de estudo e de teste de desempenho.
 
 ### Mock api JS
 
-Você pode executar os seguintes curl para popular a memória da API (OBS: os registros da api ficam em memória. Ao
-reiniciar a api estes registros são perdidos)
+Você pode executar os seguintes curl para popular a memória da API **(OBS: os registros da api ficam em memória. Ao
+reiniciar a api estes registros são perdidos)**
 
 **Seed de Cursos**
 
