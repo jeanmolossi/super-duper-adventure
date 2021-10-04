@@ -24,7 +24,7 @@ type HttpResponse struct {
 func NewRequest() *HttpRequest {
 	return &HttpRequest{
 		Client: &http.Client{
-			Timeout: time.Second * 30,
+			Timeout: time.Second * 60,
 		},
 		Method: "GET",
 		Body:   strings.NewReader(""),
@@ -41,7 +41,7 @@ func (h *HttpRequest) Request() (*http.Response, error) {
 
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Accept", "application/json")
-	request.Header.Add("Origin-App", "populador")
+	request.Header.Add("Origin-App", "true")
 
 	response, err := h.Client.Do(request)
 	if err != nil {
