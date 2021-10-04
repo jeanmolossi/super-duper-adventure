@@ -3,6 +3,7 @@ package solr
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/url"
 )
 
@@ -42,7 +43,21 @@ func Init(host string, port int, core string) (*Connection, error) {
 }
 
 func NewSolr() *Connection {
-	s, err := Init("gsr_solr", 8983, "shard100")
+	shards := []string{
+		"shard100",
+		"shard101",
+		"shard102",
+		"shard103",
+		"shard104",
+		"shard105",
+	}
+
+	jackpot := rand.Int() % len(shards)
+	selectedShard := shards[jackpot]
+
+	log.Printf("Inicio do processo no shard: %s", selectedShard)
+
+	s, err := Init("gsr_solr", 8983, selectedShard)
 	if err != nil {
 		log.Fatalf("Erro ao conectar com Solr")
 		return nil
