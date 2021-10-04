@@ -5,8 +5,6 @@ services:
     container_name: gsr_go
     entrypoint: ./.docker/go/entrypoint.sh
     build: .
-    env_file:
-      - .env
     volumes:
       - .:/go/src
     depends_on:
@@ -22,7 +20,8 @@ services:
     ports:
       - "8983:8983"
     volumes:
-      - ./.docker/solr/schema.xml:/var/solr/shard100/conf/schema.xml
+      - ./.docker/solr/solr-conf/schema.xml:/opt/solr/server/solr/configsets/_default/conf/managed-schema
+      - ./.docker/solr/solr-conf/solrconfig.xml:/opt/solr/server/solr/configsets/_default/conf/solrconfig.xml
       - ./.docker/solr/custom.sh:/opt/docker-solr/scripts/custom.sh
     command:
       - custom.sh
@@ -53,6 +52,16 @@ services:
     restart: always
     volumes:
       - ./.docker/mock_server_api:/api
+    depends_on:
+      - gsr_rabbit
+    networks:
+      - grs-net
+
+  gsr_redis:
+    container_name: gsr_redis
+    image: redis:alpine
+    ports:
+      - "6379:6379"
     depends_on:
       - gsr_rabbit
     networks:
