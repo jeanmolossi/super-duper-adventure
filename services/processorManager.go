@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"github.com/jeanmolossi/super-duper-adventure/queue"
+	"github.com/jeanmolossi/super-duper-adventure/adapters/queue"
 	"github.com/joho/godotenv"
 	"github.com/streadway/amqp"
 	"log"

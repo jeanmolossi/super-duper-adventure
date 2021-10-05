@@ -3,22 +3,22 @@ package services
 import (
 	"errors"
 	"fmt"
+	"github.com/jeanmolossi/super-duper-adventure/adapters/redis"
+	solr2 "github.com/jeanmolossi/super-duper-adventure/adapters/solr"
 	"github.com/jeanmolossi/super-duper-adventure/domain"
-	"github.com/jeanmolossi/super-duper-adventure/redis"
-	"github.com/jeanmolossi/super-duper-adventure/solr"
 	"log"
 	"regexp"
 )
 
 type StudentProcessor struct {
 	Students        []domain.Student
-	SolrConnection  *solr.Connection
+	SolrConnection  *solr2.Connection
 	RedisConnection *redis.Redis
 }
 
 func NewStudentProcessor() *StudentProcessor {
 	return &StudentProcessor{
-		SolrConnection:  solr.NewSolr(),
+		SolrConnection:  solr2.NewSolr(),
 		RedisConnection: redis.NewRedisConnection(),
 	}
 }
